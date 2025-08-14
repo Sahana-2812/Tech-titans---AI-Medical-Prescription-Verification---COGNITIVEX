@@ -1,145 +1,81 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Drug Info Dashboard</title>
-  <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(to right, #74ebd5, #acb6e5);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 50px;
-    }
-
-    h1 {
-      color: #333;
-      text-align: center;
-      margin-bottom: 30px;
-    }
-
-    .card {
-      background: white;
-      padding: 25px;
-      border-radius: 15px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-      max-width: 500px;
-      width: 100%;
-    }
-
-    .card input {
-      width: calc(100% - 20px);
-      padding: 10px;
-      margin: 10px 0;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      font-size: 16px;
-    }
-
-    .card button {
-      width: 100%;
-      padding: 12px;
-      margin: 8px 0;
-      border: none;
-      border-radius: 10px;
-      background: #6c63ff;
-      color: white;
-      font-size: 16px;
-      cursor: pointer;
-      transition: 0.3s;
-    }
-
-    .card button:hover {
-      background: #5548c8;
-    }
-
-    #output {
-      margin-top: 20px;
-      padding: 15px;
-      border-radius: 10px;
-      background: #f0f0f0;
-      min-height: 50px;
-      word-wrap: break-word;
-      white-space: pre-wrap; /* preserve newlines */
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drug Verification Dashboard</title>
+<style>
+body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(to right,#74ebd5,#acb6e5); display:flex; flex-direction:column; align-items:center; padding:50px; }
+h1 { color:#333; margin-bottom:30px; text-align:center; }
+.card { background:white; padding:25px; border-radius:15px; box-shadow:0 8px 20px rgba(0,0,0,0.2); max-width:500px; width:100%; }
+.card input { width: calc(100% - 20px); padding:10px; margin:10px 0; border-radius:8px; border:1px solid #ccc; font-size:16px; }
+.card button { width:100%; padding:12px; margin:8px 0; border:none; border-radius:10px; background:#6c63ff; color:white; font-size:16px; cursor:pointer; transition:0.3s; }
+.card button:hover { background:#5548c8; }
+#output { margin-top:20px; padding:15px; border-radius:10px; background:#f0f0f0; min-height:50px; white-space: pre-wrap; word-wrap: break-word; }
+</style>
 </head>
 <body>
 
-  <h1>Drug Info Dashboard</h1>
+<h1>Drug Verification Dashboard</h1>
+<div class="card">
+  <input type="text" id="drugInput" placeholder="Enter drug name (e.g., Aspirin)">
+  <input type="number" id="ageInput" placeholder="Enter patient age (years)">
+  <input type="text" id="drugListInput" placeholder="Enter drugs separated by commas (e.g., Aspirin, Ibuprofen)">
+  <button id="analyzeBtn">Analyze Dosage</button>
+  <button id="interactBtn">Check Interactions</button>
+  <button id="suggestBtn">Suggest Alternatives</button>
+  <div id="output"></div>
+</div>
 
-  <div class="card">
-    <input type="text" id="drugInput" placeholder="Enter drug name (e.g., Aspirin)">
-    <input type="text" id="drugListInput" placeholder="Enter drugs separated by commas (e.g., Aspirin, Ibuprofen)">
-    
-    <button id="analyzeBtn">Analyze Dosage</button>
-    <button id="interactBtn">Check Interactions</button>
-    <button id="suggestBtn">Suggest Alternatives</button>
+<script>
+const outputDiv = document.getElementById("output");
+const backendUrl = "http://127.0.0.1:8000";
 
-    <div id="output"></div>
-  </div>
+// Analyze Dosage
+document.getElementById("analyzeBtn").addEventListener("click", () => {
+  const drugName = document.getElementById("drugInput").value.trim();
+  const age = parseInt(document.getElementById("ageInput").value);
+  if (!drugName || !age) { outputDiv.innerText = "Please enter both drug name and age."; return; }
+  fetch(`${backendUrl}/analyze-dosage`, {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({drug_name: drugName, age: age})
+  })
+  .then(res=>res.json())
+  .then(data=>{ outputDiv.innerText = `Recommended dosage for ${data.drug} (age ${data.age}): ${data.recommended_dosage}`; })
+  .catch(err=>outputDiv.innerText="Error: Cannot connect to backend.");
+});
 
-  <script>
-    const outputDiv = document.getElementById("output");
+// Check Interactions
+document.getElementById("interactBtn").addEventListener("click", () => {
+  const drugs = document.getElementById("drugListInput").value.split(",").map(d=>d.trim()).filter(Boolean);
+  if (!drugs.length) { outputDiv.innerText = "Please enter at least one drug."; return; }
+  fetch(`${backendUrl}/check-interactions`, {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({drugs})
+  })
+  .then(res=>res.json())
+  .then(data=>{ outputDiv.innerText = `Interactions:\n${data.interactions.join("\n")}`; })
+  .catch(err=>outputDiv.innerText="Error: Cannot connect to backend.");
+});
 
-    const backendUrl = "http://127.0.0.1:8000";
-
-    // Analyze Dosage
-    document.getElementById("analyzeBtn").addEventListener("click", () => {
-      const drugName = document.getElementById("drugInput").value.trim();
-      if (!drugName) { outputDiv.innerText = "Please enter a drug name."; return; }
-
-      fetch(`${backendUrl}/analyze-dosage`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ drug_name: drugName })
-      })
-      .then(res => res.json())
-      .then(data => {
-        outputDiv.innerText = `Recommended dosage for ${data.drug}: ${data.recommended_dosage}`;
-      })
-      .catch(err => outputDiv.innerText = "Error: Cannot connect to backend. Make sure FastAPI is running.");
-    });
-
-    // Check Interactions
-    document.getElementById("interactBtn").addEventListener("click", () => {
-      const drugs = document.getElementById("drugListInput").value
-                      .split(",")
-                      .map(d => d.trim())
-                      .filter(Boolean);
-      if (!drugs.length) { outputDiv.innerText = "Please enter at least one drug."; return; }
-
-      fetch(`${backendUrl}/check-interactions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ drugs })
-      })
-      .then(res => res.json())
-      .then(data => {
-        outputDiv.innerText = `Interactions:\n${data.interactions.join("\n")}`;
-      })
-      .catch(err => outputDiv.innerText = "Error: Cannot connect to backend. Make sure FastAPI is running.");
-    });
-
-    // Suggest Alternatives
-    document.getElementById("suggestBtn").addEventListener("click", () => {
-      const drugName = document.getElementById("drugInput").value.trim();
-      if (!drugName) { outputDiv.innerText = "Please enter a drug name."; return; }
-
-      fetch(`${backendUrl}/suggest-alternatives`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ drug_name: drugName })
-      })
-      .then(res => res.json())
-      .then(data => {
-        outputDiv.innerText = `Alternative drugs for ${drugName}:\n${data.alternatives.join(", ")}`;
-      })
-      .catch(err => outputDiv.innerText = "Error: Cannot connect to backend. Make sure FastAPI is running.");
-    });
-  </script>
+// Suggest Alternatives
+document.getElementById("suggestBtn").addEventListener("click", () => {
+  const drugName = document.getElementById("drugInput").value.trim();
+  const age = parseInt(document.getElementById("ageInput").value);
+  if (!drugName || !age) { outputDiv.innerText = "Please enter both drug name and age."; return; }
+  fetch(`${backendUrl}/suggest-alternatives`, {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({drug_name: drugName, age: age})
+  })
+  .then(res=>res.json())
+  .then(data=>{ outputDiv.innerText = `Alternative drugs for ${drugName} (age ${age}):\n${data.alternatives.join(", ")}`; })
+  .catch(err=>outputDiv.innerText="Error: Cannot connect to backend.");
+});
+</script>
 
 </body>
 </html>
+
